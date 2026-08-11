@@ -9,8 +9,10 @@
 ;; Version: 0.0.1
 ;; Keywords: calendar
 ;; Human-Keywords: calendar, rpg
-;; Homepage: https://github.com/drpaepper/xxx
+;; Homepage: https://github.com/drpaepper/dolmenwood-calendar.el
 ;; Package-Requires: ((emacs "24.3"))
+
+;; This file is not part of GNU Emacs.
 
 ;;; Commentary:
 
@@ -47,7 +49,8 @@
    []
    ["Shub's Day" "Druden Day"]
    []
-   ["The Day of Doors" "Dolmenday"]])
+   ["The Day of Doors" "Dolmenday"]]
+  "Array of arrays of strings with the names of the wysendays per month.")
 
 (defvar dolmenwood-calendar-current-game-date nil
   "The current date within the Dolmenwood game.
@@ -77,6 +80,12 @@ the game being played.")
          (month-index (1- month))
          (wysenday-array (elt dolmenwood-calendar-wysendays-in-month-array month-index)))
     (if (< wysenday-index 0) nil (elt wysenday-array wysenday-index))))
+
+(defun dolmenwood-calendar-name-of-day (month day)
+  "Return the name of day on MONTH, DAY (day of week or wysenday)."
+  (if (dolmenwood-calendar-wysenday month day)
+      (dolmenwood-calendar-wysenday month day)
+    (elt dolmenwood-calendar-day-name-array (mod day 7))))
 
 (defun dolmenwood-calendar-day-number (date)
   "Return the day number within the year of the Dolmenwood DATE."
@@ -115,36 +124,62 @@ referenced from the current game date."
 (defun dolmenwood-calendar-from-absolute (date)
   "Dolmenwood date (month day year) corresponding to absolute DATE."
   (let* ((today-real-world (calendar-absolute-from-gregorian (calendar-current-date)))
-         (today-game (dolmenwood-calendar-to-absolute dolmenwood-calendar-current-game-date))
          (days (- date today-real-world))
-         (date-game (+ today-game days))
-         (year (/ date-game 352))
-         (day-of-year (- date-game (* year 352)))
+         (years (/ days 352))
+         (d (- days (* years 352)))
+         (today-game-day-of-year (dolmenwood-calendar-day-number dolmenwood-calendar-current-game-date))
+         (years (if (< (+ today-game-day-of-year d) 1) (1- years) years))
+         (years (if (> (+ today-game-day-of-year d) 352) (1+ years) years))
          (days-in-month (mapcar 'dolmenwood-calendar-last-day-of-month (list 1 2 3 4 5 6 7 8 9 10 11 12)))
-         (day-diff (dolmenwood-calendar--cumulative-difference (append day-of-year days-in-month)))
+         (day-of-year (1+ (mod days 352)))
+         (day-diff (dolmenwood-calendar--cumulative-difference (append (list day-of-year) days-in-month)))
          (idx (dolmenwood-calendar--index-of-last-element-greater-than-zero day-diff))
          (month (1+ idx))
-         (day (nth idx day-diff)))
+         (day (nth idx day-diff))
+         (year (+ (calendar-extract-year dolmenwood-calendar-current-game-date) years)))
     (list month day year)))
 
 (defun dolmenwood-calendar-to-gregorian (date)
   "Dolmenwood DATE in game to real world date."
   (calendar-gregorian-from-absolute (dolmenwood-calendar-to-absolute date)))
 
-(defun dolmenwood-calendar-diary-holiday (month day string)
-  "Holiday on MONTH, DAY of the Dolmenwood calendar, named STRING."
-  (let* ((dolmen-date (dolmenwood-calendar-to-gregorian (list month day year)))
-         (dd (calendar-extract-day dolmen-date))
-         (mm (calendar-extract-month dolmen-date))
-         (yy (calendar-extract-year dolmen-date)))
-    (holiday-fixed mm dd string)))
+(defvar displayed-month)                ; from calendar-generate
+(defvar displayed-year)
 
+;; taken from cal-islam.el
+;;;###holiday-autoload
+(defun dolmenwood-calendar-holiday (month day string)
+  "Holiday on MONTH, DAY (Dolmenwood) called STRING.
+If MONTH, DAY (Dolmenwood) is visible, returns the corresponding
+Gregorian date as the list (((month day year) STRING)).
+Returns nil if it is not visible in the current calendar window."
+  (let* ((dolmen-date (dolmenwood-calendar-from-absolute
+                       (calendar-absolute-from-gregorian
+                        (list displayed-month 15 displayed-year))))
+         (m (calendar-extract-month dolmen-date))
+         (y (calendar-extract-year dolmen-date))
+         date)
+    (unless (< m 1)
+      (calendar-increment-month m y (- 10 month))
+      (and (> m 7)
+           (calendar-date-is-visible-p
+            (setq date (calendar-gregorian-from-absolute
+                        (dolmenwood-calendar-to-absolute (list month day y)))))
+           (list (list date string))))))
+
+
+;;;###diary-autoload
+;; To be called from diary-sexp-entry, where DATE, ENTRY are bound.
+
+(autoload 'diary-date "diary-lib")
+
+;;;###autoload
 (defun dolmenwood-calendar-diary-date (month day year &optional mark)
   "Diary sexp for Dolmenwood date in form MONTH, DAY, YEAR.
 
 An optional MARK specifies a face or single-character string
 to use to highlight."
-  (let* ((dolmen-date (dolmenwood-calendar-to-gregorian (list displayed-month 15 year)))
+  (let* ((dolmen-date (dolmenwood-calendar-to-gregorian (list month day year)))
          (dd (calendar-extract-day dolmen-date))
          (mm (calendar-extract-month dolmen-date))
          (yy (calendar-extract-year dolmen-date)))
