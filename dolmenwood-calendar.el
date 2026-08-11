@@ -32,7 +32,7 @@
   "Array of the strings giving names of the Dolmenwood days.")
 
 (defconst dolmenwood-calendar-month-name-array
-  ["Grimwold" "Lymewald" "Haggryme" "Symswald" "Harchment"
+  ["Grimvold" "Lymewald" "Haggryme" "Symswald" "Harchment"
    "Iggwyld" "Chysting" "Lillipythe" "Haelhold" "Reedwryme"
    "Obthryme" "Braghold"]
   "Array of the strings giving names of the Dolmenwood months.")
@@ -85,7 +85,7 @@ the game being played.")
   "Return the name of day on MONTH, DAY (day of week or wysenday)."
   (if (dolmenwood-calendar-wysenday month day)
       (dolmenwood-calendar-wysenday month day)
-    (elt dolmenwood-calendar-day-name-array (mod day 7))))
+    (elt dolmenwood-calendar-day-name-array (mod (1- day) 7))))
 
 (defun dolmenwood-calendar-day-number (date)
   "Return the day number within the year of the Dolmenwood DATE."
@@ -131,7 +131,7 @@ referenced from the current game date."
          (years (if (< (+ today-game-day-of-year d) 1) (1- years) years))
          (years (if (> (+ today-game-day-of-year d) 352) (1+ years) years))
          (days-in-month (mapcar 'dolmenwood-calendar-last-day-of-month (list 1 2 3 4 5 6 7 8 9 10 11 12)))
-         (day-of-year (1+ (mod days 352)))
+         (day-of-year (1+ (mod (1-(+ today-game-day-of-year days)) 352)))
          (day-diff (dolmenwood-calendar--cumulative-difference (append (list day-of-year) days-in-month)))
          (idx (dolmenwood-calendar--index-of-last-element-greater-than-zero day-diff))
          (month (1+ idx))
@@ -184,6 +184,16 @@ to use to highlight."
          (mm (calendar-extract-month dolmen-date))
          (yy (calendar-extract-year dolmen-date)))
     (diary-date mm dd yy mark)))
+
+(defun dolmenwood-calendar-org-agenda-format-date (date)
+  "Nice format for `org-agenda' for DATE."
+  (let* ((dolmen-date (dolmenwood-calendar-from-absolute (calendar-absolute-from-gregorian date)))
+         (dolmen-day (calendar-extract-day dolmen-date))
+         (dolmen-month (calendar-extract-month dolmen-date))
+         (dolmen-month-name (elt dolmenwood-calendar-month-name-array (1- dolmen-month)))
+         (dolmen-year (calendar-extract-year dolmen-date))
+         (dayname (dolmenwood-calendar-name-of-day dolmen-month dolmen-day)))
+    (format "%-20s %2d %s %4d" dayname dolmen-day dolmen-month-name dolmen-year)))
 
 (provide 'dolmenwood-calendar)
 ;;; dolmenwood-calendar.el ends here
