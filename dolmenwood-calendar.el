@@ -147,7 +147,6 @@ referenced from the current game date."
 (defvar displayed-year)
 
 ;; taken from cal-islam.el
-;;;###holiday-autoload
 (defun dolmenwood-calendar-holiday (month day string)
   "Holiday on MONTH, DAY (Dolmenwood) called STRING.
 If MONTH, DAY (Dolmenwood) is visible, returns the corresponding
@@ -167,9 +166,6 @@ Returns nil if it is not visible in the current calendar window."
                         (dolmenwood-calendar-to-absolute (list month day y)))))
            (list (list date string))))))
 
-
-;;;###diary-autoload
-;; To be called from diary-sexp-entry, where DATE, ENTRY are bound.
 
 (autoload 'diary-date "diary-lib")
 
@@ -194,6 +190,13 @@ to use to highlight."
          (dolmen-year (calendar-extract-year dolmen-date))
          (dayname (dolmenwood-calendar-name-of-day dolmen-month dolmen-day)))
     (format "%-20s %2d %s %4d" dayname dolmen-day dolmen-month-name dolmen-year)))
+
+(defun dolmenwood-calendar-increment-game-day (days)
+  "Increment `dolmenwood-calendar-current-game-date' by DAYS."
+  (setq dolmenwood-calendar-current-game-date
+        (dolmenwood-calendar-from-absolute
+         (+
+          (dolmenwood-calendar-to-absolute dolmenwood-calendar-current-game-date) days))))
 
 (provide 'dolmenwood-calendar)
 ;;; dolmenwood-calendar.el ends here
