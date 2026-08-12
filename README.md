@@ -1,4 +1,4 @@
-# dolmenwood-calender.el
+# dolmenwood-calendar.el
 
 A collection of calendar tools for implementing the calendar from the 
 Dolmenwood RPG in Emacs calendar.
