@@ -52,10 +52,46 @@
    ["The Day of Doors" "Dolmenday"]]
   "Array of arrays of strings with the names of the wysendays per month.")
 
+(defconst dolmenwood-calendar-sunrise-times-array
+  ["08:00" "08:00" "07:30" "06:30" "06:00" "05:00"
+   "04:30" "05:00" "06:00" "06:30" "07:30" "07:30"])
+
+(defconst dolmenwood-calendar-sunset-times-array
+  ["16:00" "16:30" "17:00" "18:00" "20:00" "21:00"
+   "21:30" "21:00" "20:30" "19:30" "18:00" "16:30"])
+
+(defconst dolmenwood-calendar-twilight-minutes-array
+  [20 20 25 25 25 30 30 30 25 25 25 20])
+
 (defvar dolmenwood-calendar-current-game-date nil
   "The current date within the Dolmenwood game.
 User-defined variable representing the current date within
 the game being played.")
+
+(defvar dolmenwood-calendar-current-game-time nil
+  "The current time within the Dolmenwood game.")
+
+(defun dolmenwood-calendar--time-string-to-seconds (time)
+  "Convert time string TIME to seconds."
+  (let ((time-list (parse-time-string time)))
+    (+ (nth 0 time-list) (* (nth 1 time-list) 60) (* (nth 2 time-list) 3600))))
+
+(defun dolmenwood-calendar-time-of-day ()
+  "Time of day in game (see `dolmenwood-calendar-daylight-names-array')."
+  (let* ((month (nth 0 dolmenwood-calendar-current-game-date))
+         (sunup (elt dolmenwood-calendar-sunrise-times-array (1- month)))
+         (sundown (elt dolmenwood-calendar-sunset-times-array (1- month)))
+         (sunrise (dolmenwood-calendar--time-string-to-seconds sunup))
+         (sunset (dolmenwood-calendar--time-string-to-seconds sundown))
+         (dawn (- sunrise (* 60 (elt dolmenwood-calendar-twilight-minutes-array (1- month)))))
+         (dusk (- sunset (* 60 (elt dolmenwood-calendar-twilight-minutes-array (1- month)))))
+         (current (dolmenwood-calendar--time-string-to-seconds dolmenwood-calendar-current-game-time)))
+    (cond
+     ((and (>= current 0) (< current dawn)) "Night")
+     ((and (>= current dawn) (< current sunrise)) "Dawn")
+     ((and (>= current sunrise) (< current dusk)) "Day")
+     ((and (>= current dusk) (< current sunset)) "Dusk")
+     ((>= current sunset) "Night"))))
 
 (defun dolmenwood-calendar-last-day-of-month (month)
   "The last day in MONTH of the Dolmenwood calendar."
