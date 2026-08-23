@@ -71,6 +71,20 @@ the game being played.")
 (defvar dolmenwood-calendar-current-game-time nil
   "The current time within the Dolmenwood game.")
 
+(defun dolmenwood-calendar-current-season ()
+  "Current season in game."
+  (let* ((month (nth 0 dolmenwood-calendar-current-game-date))
+         (day (nth 1 dolmenwood-calendar-current-game-date)))
+    (cond
+     ((and (= month 12) (= day 30)) "Autumn (check for Hitching)")
+     ((and (= month 9) (<= day 5)) "Summer (check for Chame)")
+     ((and (= month 6) (= day 1)) "Spring (check for Colliggwyld)")
+     ((and (or (= month 2) (= month 3)) (= (mod day 7) 1) (not (dolmenwood-calendar-is-wyesenday day))) "Winter (check for Vague)")
+     ((and (>= month 1) (<= month 3)) "Winter")
+     ((and (>= month 4) (<= month 6)) "Spring")
+     ((and (>= month 7) (<= month 9)) "Summer")
+     ((and (>= month 10) (<= month 12)) "Autumn"))))
+
 (defun dolmenwood-calendar--time-string-to-seconds (time)
   "Convert time string TIME to seconds."
   (let ((time-list (parse-time-string time)))
@@ -107,7 +121,7 @@ the game being played.")
     (- days-in-month 28)))
 
 (defun dolmenwood-calendar-is-wyesenday (day)
-  "Return t if MONTH, DAY is wysenday in the Dolmenwood calendar, otherwise nil."
+  "Return t if DAY is wysenday in the Dolmenwood calendar, otherwise nil."
   (> day 28))
 
 (defun dolmenwood-calendar-wysenday (month day)
